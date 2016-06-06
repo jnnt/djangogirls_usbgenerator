@@ -100,7 +100,7 @@ def list_tutorial_languages():
 
         <div class="list-group">
             <a href="...?lang=en">English</a>
-            <a href="...?lang=fr">Français</a>
+            <a href="...?lang=fr">Franais</a>
             ...
         </div
     """
@@ -113,19 +113,22 @@ def list_tutorial_languages():
     return {_get_lang_from_url(anchor.attrib['href']): (anchor.attrib['href'], anchor.text_content().strip()) for anchor in anchors}
 
 
-def tutorial():
+def tutorial(all_languages=False):
     """Download tutorial, multiple languages possible"""
     tutorials = list_tutorial_languages()
     print("Translations available:")
     for code, (_, lang) in tutorials.items():
         print("    %s: %s" % (code, lang))
-    print("Please, enter your choice (2 letters language code). If multiple choices, use space as a separator.")
-    while True:
-        choice = click.prompt('').split()
-        if all(i in tutorials for i in choice):
-            break
-        else:
-            print("2 letters code not recognized. Choose again in this list: %s" % ', '.join(tutorials))
+    if all_languages:
+        choice = [code for code in tutorials]
+    else:
+        print("Please, enter your choice (2 letters language code). If multiple choices, use space as a separator.")
+        while True:
+            choice = click.prompt('').split()
+            if all(i in tutorials for i in choice):
+                break
+            else:
+                print("2 letters code not recognized. Choose again in this list: %s" % ', '.join(tutorials))
 
     for lang in choice:
         url, lang_name = tutorials[lang]
@@ -253,13 +256,24 @@ OPERATIONS = OrderedDict([
 
 @click.command()
 @click.option("--all", is_flag=True, help="Download everything but still prompts for tutorial languages.")
-def download_steps(all):
+@click.option("--all-langs", is_flag=True, help="Download tutorial in all languages (if you choose to download the tutorial)")
+@click.option("--skip-apps", is_flag=True, help="Do not download python and code editors")
+def download_steps(all, all_langs, skip_apps):
     """Launch the different downloading function"""
     introduction()
     if all:
         do_it = lambda _, function: function()
     else:
         do_it = yes_no
+
+    if all_langs:
+        OPERATIONS["the tutorial"] = lambda: tutorial(all_languages=True)
+
+    if skip_apps:
+        del OPERATIONS["code editors"]
+        del OPERATIONS["Python"]
+        del OPERATIONS["Django"]
+
 
     for label, fn in OPERATIONS.items():
         do_it("Do you want to download %s?" % label, fn)
